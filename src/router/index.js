@@ -1,27 +1,69 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import Login from '@/views/Login'
+import Home from '@/views/Home'
 
 Vue.use(VueRouter)
 
+// 对编程式路由点击报错问题进行处理
+const originPush = VueRouter.prototype.push
+const originReplace = VueRouter.prototype.replace
+
+VueRouter.prototype.push = function (location, resolve, reject) {
+  if (resolve & reject) {
+    originPush.call(this, location, resolve, reject)
+  } else {
+    originPush.call(
+      this,
+      location,
+      () => {},
+      () => {}
+    )
+  }
+}
+
+VueRouter.prototype.replace = function (location, resolve, reject) {
+  if (resolve & reject) {
+    originReplace.call(this, location, resolve, reject)
+  } else {
+    originReplace.call(
+      this,
+      location,
+      () => {},
+      () => {}
+    )
+  }
+}
+
 const routes = [
   {
-    path: '/',
-    name: 'home',
-    component: HomeView
+    path: '/login',
+    name: 'login',
+    component: Login
   },
   {
-    path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
+    path: '/',
+    redirect: '/login'
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: Home
   }
 ]
 
 const router = new VueRouter({
   routes
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.path === '/login') return next()
+  const tokenStr = window.sessionStorage.getItem('token')
+  if (!tokenStr) {
+    Vue.prototype.$message.error('请登录')
+    return next('/login')
+  }
+  next()
 })
 
 export default router
